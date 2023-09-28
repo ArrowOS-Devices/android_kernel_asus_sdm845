@@ -1091,7 +1091,7 @@ static int fg_get_batt_profile(struct fg_chip *chip)
 		return -ENXIO;
 	}
 
-	if (2 == g_bat_reload_cond || 2 == g_cycle_count_data.reload_condition) { // ASUS_BSP: change to 4.25v profile
+	if (2 == g_bat_reload_cond) { // ASUS_BSP: change to 4.25v profile
 		profile_node = of_batterydata_get_best_profile(batt_node,
 					chip->batt_id_ohms / 1000, draco_4p25v_profile_name_str);
 	} else {
@@ -2875,15 +2875,8 @@ static void fg_cycle_counter_update(struct fg_chip *chip)
 {
 	int rc = 0, bucket, i, batt_soc;
 
-	/* Try one more time if previous data not loaded */
-	if(!g_cyclecount_initialized) {
-		asus_batt_cycle_count_init();/* Try one more time */
-	}
-
 	if (!chip->cyc_ctr.en)
 		return;
-
-	asus_update_cycle_count(chip);
 
 	mutex_lock(&chip->cyc_ctr.lock);
 	rc = fg_get_sram_prop(chip, FG_SRAM_BATT_SOC, &batt_soc);
@@ -3438,7 +3431,6 @@ static void profile_load_work(struct work_struct *work)
 	asus_set_battery_version();
 	asus_check_batt_id(chip);
 	if(!g_cyclecount_initialized) {
-		rc = asus_batt_cycle_count_init();
 		if(rc < 0){
 			pr_err("init batt cycle count failed!\n");
 		}
@@ -6205,8 +6197,6 @@ static int fg_gen3_probe(struct platform_device *pdev)
 
 	device_init_wakeup(chip->dev, true);
 	schedule_delayed_work(&chip->profile_load_work, msecs_to_jiffies(FG_DELAY_BATT_ID_MS));
-
-	asus_add_battery_health_fun(); //battery health upgrade
 
 	pr_debug("FG GEN3 driver probed successfully\n");
 	return 0;
